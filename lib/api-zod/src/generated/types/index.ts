@@ -6,4 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./errorResponse";
 export * from "./healthStatus";
+export * from "./pairRequest";
+export * from "./pairResponse";
+export * from "./pairResponseStatus";
+export * from "./sessionStatus";
+export * from "./sessionStatusStatus";

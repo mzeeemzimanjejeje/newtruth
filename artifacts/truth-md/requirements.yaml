@@ -1,0 +1,12 @@
+packages:
+  "framer-motion": "For smooth reveal animations, layout transitions, and premium interactions"
+  "lucide-react": "For tech-themed iconography across the interface"
+
+images:
+  - path: "artifacts/truth-md/public/images/space-bg.png"
+    description: "Deep dark space galaxy background, extremely subtle teal and cyan nebula clouds, faint glowing stars, dark navy and pitch black void, ultra high quality, 4k, digital art, minimal and clean, suitable for a dark mode interface background"
+    aspect_ratio: "16:9"
+
+notes:
+  - Using generated Orval React Query hooks from @workspace/api-client-react
+  - Expecting standard Shadcn-like UI directory structure to exist as per context

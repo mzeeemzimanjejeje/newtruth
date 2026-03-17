@@ -8,3 +8,45 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface PairRequest {
+  /** Phone number with country code (e.g. 2547xxxxxxxx) */
+  phone: string;
+}
+
+export type PairResponseStatus =
+  (typeof PairResponseStatus)[keyof typeof PairResponseStatus];
+
+export const PairResponseStatus = {
+  pending: "pending",
+  ready: "ready",
+  failed: "failed",
+} as const;
+
+export interface PairResponse {
+  /** The pairing code (e.g. XXXX-XXXX-XXXX) */
+  code: string;
+  /** Unique session identifier to poll for completion */
+  sessionId: string;
+  status: PairResponseStatus;
+}
+
+export type SessionStatusStatus =
+  (typeof SessionStatusStatus)[keyof typeof SessionStatusStatus];
+
+export const SessionStatusStatus = {
+  pending: "pending",
+  ready: "ready",
+  failed: "failed",
+} as const;
+
+export interface SessionStatus {
+  sessionId: string;
+  status: SessionStatusStatus;
+  /** The captured session ID string (prefixed with TRUTH_MD_CREDS;) when ready */
+  sessionData?: string;
+}
+
+export interface ErrorResponse {
+  error: string;
+}

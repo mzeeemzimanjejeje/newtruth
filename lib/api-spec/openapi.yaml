@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: pairing
+    description: WhatsApp pairing operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /pair:
+    post:
+      operationId: requestPairCode
+      tags: [pairing]
+      summary: Request a pairing code
+      description: Generates a WhatsApp pairing code for the given phone number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PairRequest"
+      responses:
+        "200":
+          description: Pairing code generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PairResponse"
+        "400":
+          description: Invalid phone number
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /session/{sessionId}:
+    get:
+      operationId: getSession
+      tags: [pairing]
+      summary: Get session status
+      description: Returns the status and session ID after WhatsApp pairing
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionStatus"
+        "404":
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +91,48 @@ components:
           type: string
       required:
         - status
-
+    PairRequest:
+      type: object
+      properties:
+        phone:
+          type: string
+          description: Phone number with country code (e.g. 2547xxxxxxxx)
+      required:
+        - phone
+    PairResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: The pairing code (e.g. XXXX-XXXX-XXXX)
+        sessionId:
+          type: string
+          description: Unique session identifier to poll for completion
+        status:
+          type: string
+          enum: [pending, ready, failed]
+      required:
+        - code
+        - sessionId
+        - status
+    SessionStatus:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        status:
+          type: string
+          enum: [pending, ready, failed]
+        sessionData:
+          type: string
+          description: The captured session ID string (prefixed with TRUTH_MD_CREDS;) when ready
+      required:
+        - sessionId
+        - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

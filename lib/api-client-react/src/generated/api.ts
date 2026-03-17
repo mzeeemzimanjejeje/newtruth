@@ -5,18 +5,27 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  ErrorResponse,
+  HealthStatus,
+  PairRequest,
+  PairResponse,
+  SessionStatus,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -92,6 +101,181 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Generates a WhatsApp pairing code for the given phone number
+ * @summary Request a pairing code
+ */
+export const getRequestPairCodeUrl = () => {
+  return `/api/pair`;
+};
+
+export const requestPairCode = async (
+  pairRequest: PairRequest,
+  options?: RequestInit,
+): Promise<PairResponse> => {
+  return customFetch<PairResponse>(getRequestPairCodeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(pairRequest),
+  });
+};
+
+export const getRequestPairCodeMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestPairCode>>,
+    TError,
+    { data: BodyType<PairRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestPairCode>>,
+  TError,
+  { data: BodyType<PairRequest> },
+  TContext
+> => {
+  const mutationKey = ["requestPairCode"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestPairCode>>,
+    { data: BodyType<PairRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestPairCode(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestPairCodeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof requestPairCode>>
+>;
+export type RequestPairCodeMutationBody = BodyType<PairRequest>;
+export type RequestPairCodeMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Request a pairing code
+ */
+export const useRequestPairCode = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestPairCode>>,
+    TError,
+    { data: BodyType<PairRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof requestPairCode>>,
+  TError,
+  { data: BodyType<PairRequest> },
+  TContext
+> => {
+  return useMutation(getRequestPairCodeMutationOptions(options));
+};
+
+/**
+ * Returns the status and session ID after WhatsApp pairing
+ * @summary Get session status
+ */
+export const getGetSessionUrl = (sessionId: string) => {
+  return `/api/session/${sessionId}`;
+};
+
+export const getSession = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<SessionStatus> => {
+  return customFetch<SessionStatus>(getGetSessionUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSessionQueryKey = (sessionId: string) => {
+  return [`/api/session/${sessionId}`] as const;
+};
+
+export const getGetSessionQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSession>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSession>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSessionQueryKey(sessionId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSession>>> = ({
+    signal,
+  }) => getSession(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSession>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSessionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSession>>
+>;
+export type GetSessionQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get session status
+ */
+
+export function useGetSession<
+  TData = Awaited<ReturnType<typeof getSession>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSession>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSessionQueryOptions(sessionId, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

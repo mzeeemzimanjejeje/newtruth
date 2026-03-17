@@ -14,3 +14,40 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Generates a WhatsApp pairing code for the given phone number
+ * @summary Request a pairing code
+ */
+export const RequestPairCodeBody = zod.object({
+  phone: zod
+    .string()
+    .describe("Phone number with country code (e.g. 2547xxxxxxxx)"),
+});
+
+export const RequestPairCodeResponse = zod.object({
+  code: zod.string().describe("The pairing code (e.g. XXXX-XXXX-XXXX)"),
+  sessionId: zod
+    .string()
+    .describe("Unique session identifier to poll for completion"),
+  status: zod.enum(["pending", "ready", "failed"]),
+});
+
+/**
+ * Returns the status and session ID after WhatsApp pairing
+ * @summary Get session status
+ */
+export const GetSessionParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const GetSessionResponse = zod.object({
+  sessionId: zod.string(),
+  status: zod.enum(["pending", "ready", "failed"]),
+  sessionData: zod
+    .string()
+    .optional()
+    .describe(
+      "The captured session ID string (prefixed with TRUTH_MD_CREDS;) when ready",
+    ),
+});
