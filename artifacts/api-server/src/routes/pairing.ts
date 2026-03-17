@@ -11,6 +11,26 @@ const serverStats = {
   startedAt: Date.now(),
 };
 
+function generateQrString(): string {
+  const rand = (n: number) => Buffer.from(
+    Array.from({ length: n }, () => Math.floor(Math.random() * 256))
+  ).toString("base64url");
+  return `2@${rand(32)},${rand(44)},${rand(44)},${rand(44)}`;
+}
+
+const qrStore: { data: string; expiresAt: number } = {
+  data: generateQrString(),
+  expiresAt: Date.now() + 30000,
+};
+
+router.get("/qr", (_req, res) => {
+  if (Date.now() > qrStore.expiresAt) {
+    qrStore.data = generateQrString();
+    qrStore.expiresAt = Date.now() + 30000;
+  }
+  res.json({ qr: qrStore.data, expiresAt: qrStore.expiresAt });
+});
+
 router.get("/stats", (_req, res) => {
   res.json({
     visitors: serverStats.visitors,
