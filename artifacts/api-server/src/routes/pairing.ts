@@ -33,7 +33,7 @@ function generateTruthMdSessionData(phone: string): string {
       server: "truth-md",
     })
   ).toString("base64");
-  return `TRUTH_MD_CREDS;${base64Part}`;
+  return `TRUTH-MD:~.${base64Part}`;
 }
 
 router.post("/pair", (req, res) => {
