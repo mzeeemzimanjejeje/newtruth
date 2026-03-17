@@ -1,16 +1,22 @@
 import { useState, useEffect } from "react"
-import { Copy, Loader2, Smartphone, Shield, QrCode, Check } from "lucide-react"
+import { Copy, Loader2, Smartphone, Shield, QrCode, Check, CheckCircle2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { CustomButton } from "@/components/ui/custom-button"
 import { useToast } from "@/hooks/use-toast"
 import { useRequestPairCode, useGetSession } from "@workspace/api-client-react"
 import { Link } from "wouter"
 
-export function PairingForm() {
+interface PairingFormProps {
+  onSessionReady?: (sessionData: string) => void
+  onPairingStarted?: () => void
+}
+
+export function PairingForm({ onSessionReady, onPairingStarted }: PairingFormProps) {
   const [phone, setPhone] = useState("")
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [code, setCode] = useState<string | null>(null)
   const [hasCopied, setHasCopied] = useState(false)
+  const [notifiedReady, setNotifiedReady] = useState(false)
   
   const { toast } = useToast()
   const pairMutation = useRequestPairCode()
@@ -38,6 +44,7 @@ export function PairingForm() {
         onSuccess: (res) => {
           setCode(res.code)
           setSessionId(res.sessionId)
+          onPairingStarted?.()
         },
         onError: (err) => {
           toast({
@@ -63,6 +70,13 @@ export function PairingForm() {
 
   const status = sessionQuery.data?.status
   const sessionData = sessionQuery.data?.sessionData
+
+  useEffect(() => {
+    if (status === "ready" && sessionData && !notifiedReady) {
+      setNotifiedReady(true)
+      onSessionReady?.(sessionData)
+    }
+  }, [status, sessionData, notifiedReady, onSessionReady])
 
   return (
     <div className="glass-panel rounded-2xl p-6 sm:p-8 flex flex-col relative overflow-hidden border-t-2 border-t-primary/50 shadow-[0_-5px_30px_rgba(0,212,255,0.05)]">
