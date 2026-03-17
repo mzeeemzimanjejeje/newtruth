@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { RequestPairCodeBody, RequestPairCodeResponse, GetSessionParams, GetSessionResponse } from "@workspace/api-zod";
+import { startPairing, startQRSession, getSession, getQRForSession } from "../lib/whatsapp.js";
 
 const router: IRouter = Router();
 
@@ -11,25 +12,12 @@ const serverStats = {
   startedAt: Date.now(),
 };
 
-function generateQrString(): string {
-  const rand = (n: number) => Buffer.from(
-    Array.from({ length: n }, () => Math.floor(Math.random() * 256))
-  ).toString("base64url");
-  return `2@${rand(32)},${rand(44)},${rand(44)},${rand(44)}`;
+let globalQrSessionId: string | null = null;
+
+function generateSessionId(): string {
+  return Math.random().toString(36).substring(2, 18) +
+    Math.random().toString(36).substring(2, 18);
 }
-
-const qrStore: { data: string; expiresAt: number } = {
-  data: generateQrString(),
-  expiresAt: Date.now() + 30000,
-};
-
-router.get("/qr", (_req, res) => {
-  if (Date.now() > qrStore.expiresAt) {
-    qrStore.data = generateQrString();
-    qrStore.expiresAt = Date.now() + 30000;
-  }
-  res.json({ qr: qrStore.data, expiresAt: qrStore.expiresAt });
-});
 
 router.get("/stats", (_req, res) => {
   res.json({
@@ -41,40 +29,34 @@ router.get("/stats", (_req, res) => {
   });
 });
 
-interface SessionRecord {
-  sessionId: string;
-  phone: string;
-  code: string;
-  status: "pending" | "ready" | "failed";
-  sessionData?: string;
-  createdAt: number;
-}
+// QR endpoint — spins up a real Baileys QR session
+router.get("/qr", async (_req, res) => {
+  try {
+    // Reuse existing QR session if it's still pending
+    if (globalQrSessionId) {
+      const existing = getSession(globalQrSessionId);
+      if (existing && existing.status === "pending" && existing.qr) {
+        res.json({ qr: existing.qr, expiresAt: existing.qrExpiresAt, sessionId: globalQrSessionId });
+        return;
+      }
+      if (existing?.status === "ready") {
+        res.json({ qr: existing.qr, expiresAt: existing.qrExpiresAt, sessionId: globalQrSessionId, status: "ready", sessionData: existing.sessionData });
+        return;
+      }
+    }
 
-const sessions = new Map<string, SessionRecord>();
+    // Start a fresh QR session
+    const sessionId = generateSessionId();
+    globalQrSessionId = sessionId;
+    const qr = await startQRSession(sessionId);
+    res.json({ qr, expiresAt: Date.now() + 30000, sessionId });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to generate QR code" });
+  }
+});
 
-function generatePairCode(): string {
-  const seg = () =>
-    Math.random().toString(36).substring(2, 6).toUpperCase().padStart(4, "0");
-  return `${seg()}-${seg()}-${seg()}`;
-}
-
-function generateSessionId(): string {
-  return Math.random().toString(36).substring(2, 18) +
-    Math.random().toString(36).substring(2, 18);
-}
-
-function generateTruthMdSessionData(phone: string): string {
-  const base64Part = Buffer.from(
-    JSON.stringify({
-      phone,
-      timestamp: Date.now(),
-      server: "truth-md",
-    })
-  ).toString("base64");
-  return `TRUTH-MD:~${base64Part}`;
-}
-
-router.post("/pair", (req, res) => {
+// Pair code endpoint
+router.post("/pair", async (req, res) => {
   serverStats.requests++;
   serverStats.visitors++;
 
@@ -86,44 +68,33 @@ router.post("/pair", (req, res) => {
   }
 
   const { phone } = parseResult.data;
+  const cleaned = phone.replace(/\D/g, "");
 
-  if (!phone || phone.trim().length < 7) {
+  if (!cleaned || cleaned.length < 7) {
     serverStats.failed++;
     res.status(400).json({ error: "Please enter a valid phone number with country code" });
     return;
   }
 
   const sessionId = generateSessionId();
-  const code = generatePairCode();
 
-  const session: SessionRecord = {
-    sessionId,
-    phone: phone.trim(),
-    code,
-    status: "pending",
-    createdAt: Date.now(),
-  };
+  try {
+    const code = await startPairing(sessionId, cleaned);
 
-  sessions.set(sessionId, session);
+    const response = RequestPairCodeResponse.parse({
+      code,
+      sessionId,
+      status: "pending",
+    });
 
-  setTimeout(() => {
-    const s = sessions.get(sessionId);
-    if (s && s.status === "pending") {
-      s.status = "ready";
-      s.sessionData = generateTruthMdSessionData(s.phone);
-      serverStats.success++;
-    }
-  }, 15000);
-
-  const response = RequestPairCodeResponse.parse({
-    code,
-    sessionId,
-    status: "pending",
-  });
-
-  res.json(response);
+    res.json(response);
+  } catch (err) {
+    serverStats.failed++;
+    res.status(500).json({ error: "Failed to generate pairing code. Please try again." });
+  }
 });
 
+// Session status polling
 router.get("/session/:sessionId", (req, res) => {
   const parseResult = GetSessionParams.safeParse(req.params);
   if (!parseResult.success) {
@@ -132,11 +103,17 @@ router.get("/session/:sessionId", (req, res) => {
   }
 
   const { sessionId } = parseResult.data;
-  const session = sessions.get(sessionId);
+  const session = getSession(sessionId);
 
   if (!session) {
     res.status(404).json({ error: "Session not found" });
     return;
+  }
+
+  if (session.status === "ready") {
+    serverStats.success++;
+  } else if (session.status === "failed") {
+    serverStats.failed++;
   }
 
   const response = GetSessionResponse.parse({

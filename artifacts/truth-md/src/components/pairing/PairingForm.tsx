@@ -186,7 +186,7 @@ export const PairingForm = forwardRef<PairingFormRef, PairingFormProps>(
                 <div className="w-full p-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-3">
                   <Loader2 className="w-5 h-5 text-primary animate-spin shrink-0" />
                   <p className="text-sm text-left text-muted-foreground">
-                    Keep this tab open. Session capture will begin automatically.
+                    Open WhatsApp → Linked Devices → Link a Device → Link with Phone Number, then enter this code. Keep this tab open.
                   </p>
                 </div>
               </motion.div>

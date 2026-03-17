@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import QRCode from "react-qr-code"
-import { ArrowLeft, RefreshCw, Shield } from "lucide-react"
+import { ArrowLeft, RefreshCw, Shield, CheckCircle2, Copy, Check } from "lucide-react"
 import { Link } from "wouter"
 
 export default function ScanPage() {
@@ -9,6 +9,36 @@ export default function ScanPage() {
   const [timeLeft, setTimeLeft] = useState(30)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
+  const [sessionId, setSessionId] = useState<string | null>(null)
+  const [sessionStatus, setSessionStatus] = useState<"pending" | "ready" | "failed" | null>(null)
+  const [sessionData, setSessionData] = useState<string | null>(null)
+  const [hasCopied, setHasCopied] = useState(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }
+
+  const startPolling = useCallback((sid: string) => {
+    stopPolling()
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${import.meta.env.BASE_URL}api/session/${sid}`)
+        if (!res.ok) return
+        const data = await res.json()
+        setSessionStatus(data.status)
+        if (data.status === "ready" && data.sessionData) {
+          setSessionData(data.sessionData)
+          stopPolling()
+        } else if (data.status === "failed") {
+          stopPolling()
+        }
+      } catch { /* ignore */ }
+    }, 3000)
+  }, [])
 
   const fetchQr = useCallback(async () => {
     setLoading(true)
@@ -18,15 +48,27 @@ export default function ScanPage() {
       const data = await res.json()
       setQrData(data.qr)
       setExpiresAt(data.expiresAt)
+      if (data.sessionId) {
+        setSessionId(data.sessionId)
+        if (data.status === "ready" && data.sessionData) {
+          setSessionStatus("ready")
+          setSessionData(data.sessionData)
+          stopPolling()
+        } else {
+          setSessionStatus("pending")
+          startPolling(data.sessionId)
+        }
+      }
     } catch {
       setError(true)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [startPolling])
 
   useEffect(() => {
     fetchQr()
+    return () => stopPolling()
   }, [fetchQr])
 
   useEffect(() => {
@@ -34,16 +76,22 @@ export default function ScanPage() {
     const interval = setInterval(() => {
       const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000))
       setTimeLeft(remaining)
-      if (remaining === 0) {
+      if (remaining === 0 && sessionStatus !== "ready") {
         fetchQr()
       }
     }, 500)
     return () => clearInterval(interval)
-  }, [expiresAt, fetchQr])
+  }, [expiresAt, fetchQr, sessionStatus])
+
+  const handleCopy = () => {
+    if (!sessionData) return
+    navigator.clipboard.writeText(sessionData)
+    setHasCopied(true)
+    setTimeout(() => setHasCopied(false), 2000)
+  }
 
   const expired = timeLeft === 0
   const progress = (timeLeft / 30) * 100
-
   const strokeDash = 2 * Math.PI * 44
   const strokeOffset = strokeDash * (1 - progress / 100)
 
@@ -85,85 +133,118 @@ export default function ScanPage() {
           </div>
         </div>
 
-        {/* QR Area */}
-        <div className="px-6 pb-6 flex flex-col items-center">
-          <div className="relative flex items-center justify-center w-64 h-64">
+        {/* Session Ready State */}
+        {sessionStatus === "ready" && sessionData ? (
+          <div className="px-6 pb-6 flex flex-col items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+              <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-xl font-display font-bold text-foreground">Session Captured</h3>
+              <p className="text-sm text-muted-foreground mt-1">Your TRUTH MD session ID is ready.</p>
+            </div>
+            <div className="w-full text-left relative">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/40 to-primary/40 rounded-xl blur opacity-25" />
+              <div className="relative bg-black/80 border border-white/20 rounded-lg p-4 font-mono text-xs text-emerald-400 break-all max-h-40 overflow-y-auto">
+                {sessionData}
+              </div>
+              <button
+                onClick={handleCopy}
+                className="absolute top-2 right-2 p-2 bg-white/10 hover:bg-white/20 rounded border border-white/10 transition-all"
+              >
+                {hasCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-white/60" />}
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* QR Area */
+          <div className="px-6 pb-6 flex flex-col items-center">
+            <div className="relative flex items-center justify-center w-64 h-64">
 
-            {/* Countdown ring */}
-            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="2" />
-              <circle
-                cx="50" cy="50" r="44"
-                fill="none"
-                stroke={timeLeft <= 5 ? "#f87171" : "#00d4ff"}
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeDasharray={strokeDash}
-                strokeDashoffset={strokeOffset}
-                style={{ transition: "stroke-dashoffset 0.5s linear, stroke 0.3s" }}
-              />
-            </svg>
-
-            {/* QR Code box */}
-            <div className={`relative w-52 h-52 bg-white rounded-xl flex items-center justify-center transition-all duration-300 ${expired || loading ? "opacity-20 blur-sm" : "opacity-100"}`}>
-              {qrData && !error && (
-                <QRCode
-                  value={qrData}
-                  size={192}
-                  bgColor="#ffffff"
-                  fgColor="#0a0a0a"
-                  level="M"
+              {/* Countdown ring */}
+              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="2" />
+                <circle
+                  cx="50" cy="50" r="44"
+                  fill="none"
+                  stroke={timeLeft <= 5 ? "#f87171" : "#00d4ff"}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray={strokeDash}
+                  strokeDashoffset={strokeOffset}
+                  style={{ transition: "stroke-dashoffset 0.5s linear, stroke 0.3s" }}
                 />
+              </svg>
+
+              {/* QR Code box */}
+              <div className={`relative w-52 h-52 bg-white rounded-xl flex items-center justify-center transition-all duration-300 ${expired || loading ? "opacity-20 blur-sm" : "opacity-100"}`}>
+                {qrData && !error && (
+                  <QRCode
+                    value={qrData}
+                    size={192}
+                    bgColor="#ffffff"
+                    fgColor="#0a0a0a"
+                    level="M"
+                  />
+                )}
+              </div>
+
+              {/* Overlay when expired or loading */}
+              {(expired || loading || error) && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                  {error ? (
+                    <p className="text-xs text-red-400 text-center px-4">Failed to load QR.<br/>Check connection.</p>
+                  ) : (
+                    <>
+                      <RefreshCw className={`w-8 h-8 text-primary ${loading ? "animate-spin" : "animate-pulse"}`} />
+                      <p className="text-xs text-muted-foreground">{loading ? "Refreshing..." : "Expired — refreshing"}</p>
+                    </>
+                  )}
+                </div>
               )}
             </div>
 
-            {/* Overlay when expired or loading */}
-            {(expired || loading || error) && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                {error ? (
-                  <p className="text-xs text-red-400 text-center px-4">Failed to load QR.<br/>Check connection.</p>
-                ) : (
-                  <>
-                    <RefreshCw className={`w-8 h-8 text-primary ${loading ? "animate-spin" : "animate-pulse"}`} />
-                    <p className="text-xs text-muted-foreground">{loading ? "Refreshing..." : "Expired — refreshing"}</p>
-                  </>
-                )}
+            {/* Timer + refresh */}
+            <div className="mt-4 flex items-center gap-3 text-sm">
+              <span className={`font-mono font-bold text-lg ${timeLeft <= 5 ? "text-red-400" : "text-primary"}`}>
+                {timeLeft}s
+              </span>
+              <span className="text-muted-foreground text-xs">until refresh</span>
+              <button
+                onClick={fetchQr}
+                disabled={loading}
+                className="ml-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-40"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+                Refresh
+              </button>
+            </div>
+
+            {/* Waiting indicator */}
+            {sessionStatus === "pending" && (
+              <div className="mt-3 w-full p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-primary animate-spin shrink-0" />
+                <p className="text-xs text-muted-foreground">Waiting for WhatsApp to connect…</p>
               </div>
             )}
-          </div>
 
-          {/* Timer + refresh */}
-          <div className="mt-4 flex items-center gap-3 text-sm">
-            <span className={`font-mono font-bold text-lg ${timeLeft <= 5 ? "text-red-400" : "text-primary"}`}>
-              {timeLeft}s
-            </span>
-            <span className="text-muted-foreground text-xs">until refresh</span>
-            <button
-              onClick={fetchQr}
-              disabled={loading}
-              className="ml-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-40"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-              Refresh
-            </button>
+            {/* Steps */}
+            <div className="mt-5 w-full space-y-2 text-xs text-muted-foreground">
+              {[
+                "Open WhatsApp and go to Settings",
+                "Tap Linked Devices → Link a Device",
+                "Point your camera at the QR code above",
+              ].map((step, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-primary/20 border border-primary/40 text-primary text-[10px] flex items-center justify-center font-bold mt-0.5">
+                    {i + 1}
+                  </span>
+                  <span>{step}</span>
+                </div>
+              ))}
+            </div>
           </div>
-
-          {/* Steps */}
-          <div className="mt-5 w-full space-y-2 text-xs text-muted-foreground">
-            {[
-              "Open WhatsApp and go to Settings",
-              "Tap Linked Devices → Link a Device",
-              "Point your camera at the QR code above",
-            ].map((step, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className="shrink-0 w-4 h-4 rounded-full bg-primary/20 border border-primary/40 text-primary text-[10px] flex items-center justify-center font-bold mt-0.5">
-                  {i + 1}
-                </span>
-                <span>{step}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )
