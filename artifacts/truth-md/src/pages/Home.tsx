@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react"
 import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
-import { PairingForm } from "@/components/pairing/PairingForm"
+import { PairingForm, PairingFormRef } from "@/components/pairing/PairingForm"
 import { InstructionsCard } from "@/components/pairing/InstructionsCard"
 import { useHealthCheck } from "@workspace/api-client-react"
-import { Copy, Check, Terminal, Clock } from "lucide-react"
+import { Copy, Check, Terminal, Clock, Link as LinkIcon } from "lucide-react"
 
 interface LogLine {
   tag: "BOOT" | "INFO" | "SUCCESS" | "WARN" | "ERROR"
@@ -29,13 +29,16 @@ function formatUptime(secs: number) {
 export default function Home() {
   const [resetKey, setResetKey] = useState(0)
   const [sessionData, setSessionData] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [currentCode, setCurrentCode] = useState<string | null>(null)
+  const [consoleCopied, setConsoleCopied] = useState(false)
+  const [barCopied, setBarCopied] = useState(false)
   const [stats, setStats] = useState<Stats>({ visitors: 0, requests: 0, success: 0, failed: 0, uptimeSecs: 0 })
   const [logs, setLogs] = useState<LogLine[]>([
     { tag: "BOOT", msg: "TRUTH-MD portal initialized." },
     { tag: "INFO", msg: "Ready for pairing request..." },
   ])
   const logsEndRef = useRef<HTMLDivElement>(null)
+  const formRef = useRef<PairingFormRef>(null)
 
   const healthQuery = useHealthCheck()
   const isOnline = healthQuery.data?.status === "ok"
@@ -63,6 +66,7 @@ export default function Home() {
   const handleReset = () => {
     setResetKey(prev => prev + 1)
     setSessionData(null)
+    setCurrentCode(null)
     pushLog("WARN", "Session reset. Waiting for new pairing request...")
   }
 
@@ -71,17 +75,31 @@ export default function Home() {
     pushLog("INFO", "Polling every 3s for session capture. Keep tab open.")
   }
 
+  const handleCodeReady = (code: string) => {
+    setCurrentCode(code)
+  }
+
   const handleSessionReady = (data: string) => {
     setSessionData(data)
+    setCurrentCode(null)
     pushLog("SUCCESS", "Session captured successfully!")
     pushLog("SUCCESS", `Session ID: ${data}`)
   }
 
-  const handleCopy = () => {
-    if (!sessionData) return
-    navigator.clipboard.writeText(sessionData)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleBarCopy = () => {
+    const text = formRef.current?.getCopyText()
+    if (!text) return
+    navigator.clipboard.writeText(text)
+    setBarCopied(true)
+    setTimeout(() => setBarCopied(false), 2000)
+  }
+
+  const handleConsoleCopy = () => {
+    const text = sessionData || currentCode
+    if (!text) return
+    navigator.clipboard.writeText(text)
+    setConsoleCopied(true)
+    setTimeout(() => setConsoleCopied(false), 2000)
   }
 
   const tagColor: Record<LogLine["tag"], string> = {
@@ -92,8 +110,10 @@ export default function Home() {
     ERROR: "text-red-400",
   }
 
+  const hasCopyTarget = !!(sessionData || currentCode)
+
   return (
-    <div className="min-h-screen flex flex-col relative bg-transparent overflow-x-hidden font-sans">
+    <div className="min-h-screen flex flex-col relative bg-transparent overflow-x-hidden font-sans pb-20">
 
       {/* Background */}
       <div className="fixed inset-0 z-[-2] bg-background">
@@ -103,17 +123,18 @@ export default function Home() {
           className="w-full h-full object-cover opacity-30 mix-blend-screen"
         />
       </div>
-      <div className="fixed inset-0 z-[-1] pointer-events-none opacity-5" />
       <div className="fixed top-0 inset-x-0 h-[500px] bg-gradient-to-b from-primary/5 to-transparent pointer-events-none z-[-1]" />
 
       <Header onReset={handleReset} isOnline={isOnline} />
 
-      <main className="flex-grow flex items-center py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full z-10">
+      <main className="flex-grow flex items-center py-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-stretch">
           <div className="lg:col-span-7 xl:col-span-8 flex flex-col">
             <PairingForm
+              ref={formRef}
               key={resetKey}
               onPairingStarted={handlePairingStarted}
+              onCodeReady={handleCodeReady}
               onSessionReady={handleSessionReady}
             />
           </div>
@@ -168,22 +189,22 @@ export default function Home() {
               </div>
             ))}
 
-            {/* Session ID block when ready */}
-            {sessionData && (
+            {(sessionData || currentCode) && (
               <div className="mt-2 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 relative">
-                <div className="text-emerald-300/50 text-[10px] mb-1 uppercase tracking-widest">Session ID</div>
-                <div className="text-emerald-400 break-all pr-8">{sessionData}</div>
+                <div className="text-emerald-300/50 text-[10px] mb-1 uppercase tracking-widest">
+                  {sessionData ? "Session ID" : "Pair Code"}
+                </div>
+                <div className="text-emerald-400 break-all pr-8">{sessionData || currentCode}</div>
                 <button
-                  onClick={handleCopy}
+                  onClick={handleConsoleCopy}
                   className="absolute top-2 right-2 p-1.5 rounded bg-white/10 hover:bg-primary/20 border border-white/10 transition-all"
                 >
-                  {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-white/60" />}
+                  {consoleCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-white/60" />}
                 </button>
               </div>
             )}
 
-            {/* Blinking cursor */}
-            {!sessionData && (
+            {!sessionData && !currentCode && (
               <div className="flex items-center gap-1 pt-1">
                 <span className="text-white/20">$</span>
                 <span className="w-2 h-3.5 bg-primary/70 animate-pulse inline-block" />
@@ -192,6 +213,27 @@ export default function Home() {
             <div ref={logsEndRef} />
           </div>
 
+        </div>
+      </div>
+
+      {/* Sticky Bottom Action Bar */}
+      <div className="fixed bottom-0 inset-x-0 z-50 border-t border-white/10 bg-black/80 backdrop-blur-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
+          <button
+            onClick={() => formRef.current?.triggerSubmit()}
+            className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-violet-600 via-primary to-emerald-400 hover:opacity-90 transition-opacity shadow-[0_0_15px_rgba(0,212,255,0.2)]"
+          >
+            <LinkIcon className="w-4 h-4" />
+            Generate
+          </button>
+          <button
+            onClick={handleBarCopy}
+            disabled={!hasCopyTarget}
+            className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl font-bold text-sm border border-white/15 bg-white/5 text-muted-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:enabled:bg-white/10 hover:enabled:text-white transition-all"
+          >
+            {barCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            {barCopied ? "Copied!" : "Copy"}
+          </button>
         </div>
       </div>
 
