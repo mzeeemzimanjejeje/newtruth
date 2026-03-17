@@ -3,6 +3,24 @@ import { RequestPairCodeBody, RequestPairCodeResponse, GetSessionParams, GetSess
 
 const router: IRouter = Router();
 
+const serverStats = {
+  visitors: 0,
+  requests: 0,
+  success: 0,
+  failed: 0,
+  startedAt: Date.now(),
+};
+
+router.get("/stats", (_req, res) => {
+  res.json({
+    visitors: serverStats.visitors,
+    requests: serverStats.requests,
+    success: serverStats.success,
+    failed: serverStats.failed,
+    uptimeSecs: Math.floor((Date.now() - serverStats.startedAt) / 1000),
+  });
+});
+
 interface SessionRecord {
   sessionId: string;
   phone: string;
@@ -37,8 +55,12 @@ function generateTruthMdSessionData(phone: string): string {
 }
 
 router.post("/pair", (req, res) => {
+  serverStats.requests++;
+  serverStats.visitors++;
+
   const parseResult = RequestPairCodeBody.safeParse(req.body);
   if (!parseResult.success) {
+    serverStats.failed++;
     res.status(400).json({ error: "Invalid phone number format" });
     return;
   }
@@ -46,6 +68,7 @@ router.post("/pair", (req, res) => {
   const { phone } = parseResult.data;
 
   if (!phone || phone.trim().length < 7) {
+    serverStats.failed++;
     res.status(400).json({ error: "Please enter a valid phone number with country code" });
     return;
   }
@@ -68,6 +91,7 @@ router.post("/pair", (req, res) => {
     if (s && s.status === "pending") {
       s.status = "ready";
       s.sessionData = generateTruthMdSessionData(s.phone);
+      serverStats.success++;
     }
   }, 15000);
 
