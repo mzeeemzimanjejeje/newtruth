@@ -11,8 +11,11 @@ const __dirname = path.dirname(__filename);
 // packages that are not bundle compatible
 const allowlist = [
   "@google/generative-ai",
+  "@hapi/boom",
+  "@whiskeysockets/baileys",
   "axios",
   "connect-pg-simple",
+  "cookie-parser",
   "cors",
   "date-fns",
   "drizzle-orm",
@@ -29,6 +32,7 @@ const allowlist = [
   "passport",
   "passport-local",
   "pg",
+  "pino",
   "stripe",
   "uuid",
   "ws",

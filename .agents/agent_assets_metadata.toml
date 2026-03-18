@@ -18,3 +18,9 @@ id = "JQgZTJTDQTQ7IVMI1IMM7"
 uri = "file://truth-md-deploy.tar.gz"
 type = "unspecified"
 title = "TRUTH-MD — Full Deployment Package (5.2MB)"
+
+[[outputs]]
+id = "vzlFxay9wcTUFuCWNQXxR"
+uri = "file://truth-md-final.tar.gz"
+type = "unspecified"
+title = "TRUTH-MD — Final Build (No Install Required)"
