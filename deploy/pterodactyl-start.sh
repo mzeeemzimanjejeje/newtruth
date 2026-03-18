@@ -2,6 +2,7 @@
 # ============================================================
 #  TRUTH-MD — Pterodactyl Startup Script
 #  Startup command in Pterodactyl: bash deploy/pterodactyl-start.sh
+#  Just upload files and tap Start — no extra config needed.
 # ============================================================
 
 echo "Starting TRUTH-MD..."
@@ -13,4 +14,6 @@ npm install -g pnpm --silent 2>/dev/null || true
 pnpm install
 
 # Start the pre-built server
-NODE_ENV=production node artifacts/api-server/dist/index.js
+NODE_ENV=production \
+FRONTEND_DIST="./artifacts/truth-md/dist/public" \
+node artifacts/api-server/dist/index.js
