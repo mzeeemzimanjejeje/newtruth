@@ -14,10 +14,10 @@ app.use("/api", router);
 
 // Serve frontend static files in production
 if (process.env.NODE_ENV === "production") {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  // Works in both ESM (import.meta.url) and CJS (__filename via process.env)
   const frontendDist =
     process.env.FRONTEND_DIST ||
-    path.resolve(__dirname, "../../truth-md/dist/public");
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../truth-md/dist/public");
 
   app.use(express.static(frontendDist));
 
