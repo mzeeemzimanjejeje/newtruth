@@ -5,6 +5,14 @@ const { execSync, spawn } = require('child_process');
 const { existsSync } = require('fs');
 const path = require('path');
 
+// Pull latest updates from GitHub on every restart
+try {
+  console.log('[TRUTH-MD] Pulling latest updates from GitHub...');
+  require('child_process').execSync('git pull', { stdio: 'inherit', cwd: __dirname });
+} catch (e) {
+  console.log('[TRUTH-MD] Git pull skipped:', e.message);
+}
+
 // Pterodactyl sets SERVER_PORT — fall back to PORT, then 3000
 if (!process.env.PORT) {
   process.env.PORT = process.env.SERVER_PORT || '3000';
