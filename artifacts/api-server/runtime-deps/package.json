@@ -1,0 +1,8 @@
+{
+  "name": "truth-md-runtime-deps",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@whiskeysockets/baileys": "7.0.0-rc.9"
+  }
+}
