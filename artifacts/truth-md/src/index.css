@@ -39,17 +39,16 @@
 }
 
 :root {
-  /* Dark Space Theme - TRUTH MD */
-  --background: 230 45% 4%;       /* Very dark navy/black */
-  --foreground: 210 40% 98%;      /* Off-white */
+  --background: 230 45% 4%;
+  --foreground: 210 40% 98%;
   
-  --card: 230 40% 6%;             /* Slightly lighter than bg */
+  --card: 230 40% 6%;
   --card-foreground: 210 40% 98%;
   
-  --primary: 185 100% 50%;        /* Cyan/Teal #00d4ff */
+  --primary: 185 100% 50%;
   --primary-foreground: 230 50% 5%;
   
-  --secondary: 230 30% 15%;       /* Deep blue gray */
+  --secondary: 230 30% 15%;
   --secondary-foreground: 210 40% 98%;
   
   --muted: 230 30% 12%;
@@ -61,36 +60,14 @@
   --destructive: 0 84% 60%;
   --destructive-foreground: 210 40% 98%;
   
-  --border: 185 50% 15%;          /* Cyan tinted dark border */
+  --border: 185 50% 15%;
   --input: 230 30% 15%;
   --ring: 185 100% 50%;
-}
-
-@keyframes gradientShift {
-  0%   { background-position: 0% 0%; }
-  25%  { background-position: 100% 0%; }
-  50%  { background-position: 100% 100%; }
-  75%  { background-position: 0% 100%; }
-  100% { background-position: 0% 0%; }
 }
 
 @layer base {
   body {
     @apply text-foreground font-sans antialiased selection:bg-primary/30 selection:text-primary;
-    background: linear-gradient(
-      -45deg,
-      #020912,
-      #001a2e,
-      #003344,
-      #001f3f,
-      #0a0e1a,
-      #001a2e,
-      #003344,
-      #020912
-    );
-    background-size: 400% 400%;
-    background-attachment: fixed;
-    animation: gradientShift 12s ease infinite;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -121,4 +98,33 @@
     );
     background-size: 100% 4px;
   }
+}
+
+/* Animated diagonal gradient — outside all layers so nothing overrides it */
+@keyframes gradientShift {
+  0%   { background-position: 0% 0%; }
+  25%  { background-position: 100% 0%; }
+  50%  { background-position: 100% 100%; }
+  75%  { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+html, body {
+  min-height: 100%;
+}
+
+body {
+  background: linear-gradient(
+    -45deg,
+    #020912,
+    #00334d,
+    #1a003a,
+    #003322,
+    #00334d,
+    #1a003a,
+    #020912
+  ) !important;
+  background-size: 400% 400% !important;
+  background-attachment: fixed !important;
+  animation: gradientShift 8s ease infinite !important;
 }
