@@ -61,8 +61,8 @@ async function buildAll() {
     entryPoints: [path.resolve(__dirname, "src/index.ts")],
     platform: "node",
     bundle: true,
-    format: "cjs",
-    outfile: path.resolve(distDir, "index.cjs"),
+    format: "esm",
+    outfile: path.resolve(distDir, "index.js"),
     define: {
       "process.env.NODE_ENV": '"production"',
     },
@@ -70,7 +70,7 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
     banner: {
-      js: `try { if (!global.__importMetaUrl) { global.__importMetaUrl = require('url').pathToFileURL(__filename).href; } } catch(_) {}`,
+      js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
     },
   });
 }
