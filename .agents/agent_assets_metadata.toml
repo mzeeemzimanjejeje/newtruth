@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "RG25Vm6yGyL2OLnL05U4a"
+uri = "file://truth-md.tar.gz"
+type = "unspecified"
+title = "TRUTH-MD — Full Project (Upload to Pterodactyl)"
