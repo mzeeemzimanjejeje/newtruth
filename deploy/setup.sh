@@ -1,13 +1,13 @@
 #!/bin/bash
 # ============================================================
 #  TRUTH-MD Pairing Site — VPS Setup Script
-#  Run this once on your VPS to install and start the site.
+#  VPS IP  : 77.237.242.128
+#  Domain  : newpair.courtneytech.xyz
 #
 #  Usage:
-#    1. Upload the project to your VPS (git clone or scp)
-#    2. cd into the project root
-#    3. chmod +x deploy/setup.sh
-#    4. ./deploy/setup.sh
+#    cd /root/truth-md
+#    chmod +x deploy/setup.sh
+#    ./deploy/setup.sh
 # ============================================================
 
 set -e
@@ -46,7 +46,7 @@ if ! command -v pm2 &> /dev/null; then
   echo "  Installing PM2..."
   npm install -g pm2
 else
-  echo "  PM2 $(pm2 -v) found ✓"
+  echo "  PM2 found ✓"
 fi
 
 # ── 4. Install dependencies ───────────────────────────────
@@ -64,36 +64,30 @@ pnpm --filter @workspace/api-server build
 
 echo "  Build complete ✓"
 
-# ── 6. Create logs dir and start with PM2 ─────────────────
+# ── 6. Start with PM2 ─────────────────────────────────────
 echo "[6/6] Starting server with PM2..."
-mkdir -p logs
-
-# Update the cwd in ecosystem config to current directory
-CURRENT_DIR=$(pwd)
-sed -i "s|/root/truth-md|$CURRENT_DIR|g" deploy/ecosystem.config.cjs
+mkdir -p /root/truth-md/logs
 
 pm2 start deploy/ecosystem.config.cjs
 pm2 save
+pm2 startup
 
 echo ""
-echo "╔══════════════════════════════════════════════════════╗"
-echo "║  TRUTH-MD is running!                                ║"
-echo "║                                                      ║"
-echo "║  The server is live on port 3500.                    ║"
-echo "║                                                      ║"
-echo "║  Next steps:                                         ║"
-echo "║  1. Edit deploy/nginx.conf — replace                 ║"
-echo "║     'pair.yourdomain.com' with your subdomain        ║"
-echo "║  2. Copy to nginx:                                    ║"
-echo "║     sudo cp deploy/nginx.conf \                      ║"
-echo "║       /etc/nginx/sites-available/truth-md            ║"
-echo "║     sudo ln -s /etc/nginx/sites-available/truth-md \ ║"
-echo "║       /etc/nginx/sites-enabled/truth-md              ║"
-echo "║     sudo nginx -t && sudo systemctl reload nginx     ║"
-echo "║  3. Get free SSL cert:                               ║"
-echo "║     sudo certbot --nginx -d pair.yourdomain.com      ║"
-echo "║                                                      ║"
-echo "║  To check logs: pm2 logs truth-md                   ║"
-echo "║  To restart:    pm2 restart truth-md                 ║"
-echo "╚══════════════════════════════════════════════════════╝"
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  TRUTH-MD is running on port 3500!                       ║"
+echo "║                                                          ║"
+echo "║  Next — set up nginx + SSL:                              ║"
+echo "║                                                          ║"
+echo "║  sudo cp deploy/nginx.conf \                             ║"
+echo "║    /etc/nginx/sites-available/truth-md                   ║"
+echo "║  sudo ln -s /etc/nginx/sites-available/truth-md \        ║"
+echo "║    /etc/nginx/sites-enabled/truth-md                     ║"
+echo "║  sudo nginx -t && sudo systemctl reload nginx            ║"
+echo "║  sudo certbot --nginx -d newpair.courtneytech.xyz        ║"
+echo "║                                                          ║"
+echo "║  Site will be live at:                                   ║"
+echo "║  https://newpair.courtneytech.xyz                        ║"
+echo "║                                                          ║"
+echo "║  Logs: pm2 logs truth-md                                 ║"
+echo "╚══════════════════════════════════════════════════════════╝"
 echo ""

@@ -8,21 +8,18 @@ module.exports = {
     {
       name: "truth-md",
       script: "./artifacts/api-server/dist/index.js",
-      cwd: "/root/truth-md",   // <-- Change this to your project path on VPS
+      cwd: "/root/truth-md",
       interpreter: "node",
       env: {
         NODE_ENV: "production",
         PORT: "3500",
-        // Path to built frontend files (relative to this project root)
-        FRONTEND_DIST: "./artifacts/truth-md/dist/public",
+        FRONTEND_DIST: "/root/truth-md/artifacts/truth-md/dist/public",
       },
-      // Auto-restart on crash
       autorestart: true,
       watch: false,
       max_memory_restart: "500M",
-      // Logging
-      out_file: "./logs/truth-md-out.log",
-      error_file: "./logs/truth-md-error.log",
+      out_file: "/root/truth-md/logs/out.log",
+      error_file: "/root/truth-md/logs/error.log",
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },
   ],
