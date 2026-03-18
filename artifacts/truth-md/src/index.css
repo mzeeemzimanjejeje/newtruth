@@ -66,13 +66,31 @@
   --ring: 185 100% 50%;
 }
 
+@keyframes gradientShift {
+  0%   { background-position: 0% 0%; }
+  25%  { background-position: 100% 0%; }
+  50%  { background-position: 100% 100%; }
+  75%  { background-position: 0% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
 @layer base {
   body {
-    @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30 selection:text-primary;
-    background-image: 
-      radial-gradient(circle at 50% 0%, hsl(185 100% 50% / 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 100% 100%, hsl(230 100% 60% / 0.03) 0%, transparent 40%);
+    @apply text-foreground font-sans antialiased selection:bg-primary/30 selection:text-primary;
+    background: linear-gradient(
+      -45deg,
+      #020912,
+      #030e1f,
+      #041528,
+      #001a33,
+      #002a3a,
+      #001a33,
+      #041528,
+      #030e1f
+    );
+    background-size: 400% 400%;
     background-attachment: fixed;
+    animation: gradientShift 12s ease infinite;
   }
   
   h1, h2, h3, h4, h5, h6 {
