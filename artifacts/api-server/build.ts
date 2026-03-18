@@ -12,7 +12,6 @@ const __dirname = path.dirname(__filename);
 const allowlist = [
   "@google/generative-ai",
   "@hapi/boom",
-  "@whiskeysockets/baileys",
   "axios",
   "connect-pg-simple",
   "cookie-parser",
@@ -62,17 +61,16 @@ async function buildAll() {
     entryPoints: [path.resolve(__dirname, "src/index.ts")],
     platform: "node",
     bundle: true,
-    format: "esm",
-    outfile: path.resolve(distDir, "index.js"),
+    format: "cjs",
+    outfile: path.resolve(distDir, "index.cjs"),
     define: {
       "process.env.NODE_ENV": '"production"',
     },
     minify: true,
     external: externals,
     logLevel: "info",
-    // Shim for CJS require() calls inside ESM context
     banner: {
-      js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
+      js: `try { if (!global.__importMetaUrl) { global.__importMetaUrl = require('url').pathToFileURL(__filename).href; } } catch(_) {}`,
     },
   });
 }
