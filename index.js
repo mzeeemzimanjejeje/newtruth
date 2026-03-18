@@ -2,13 +2,13 @@
 'use strict';
 
 const { execSync, spawn } = require('child_process');
-const { existsSync } = require('fs');
+const { existsSync, mkdirSync, symlinkSync } = require('fs');
 const path = require('path');
 
 // Pull latest updates from GitHub on every restart
 try {
   console.log('[TRUTH-MD] Pulling latest updates from GitHub...');
-  require('child_process').execSync('git pull', { stdio: 'inherit', cwd: __dirname });
+  execSync('git pull', { stdio: 'inherit', cwd: __dirname });
 } catch (e) {
   console.log('[TRUTH-MD] Git pull skipped:', e.message);
 }
@@ -29,15 +29,29 @@ if (!baileysInstalled) {
   execSync('npm install --legacy-peer-deps', { stdio: 'inherit', cwd: runtimeDeps });
 }
 
-// CJS respects NODE_PATH — point it at runtime-deps so require('@whiskeysockets/baileys') works
-const existing = process.env.NODE_PATH || '';
-process.env.NODE_PATH = existing
-  ? `${existing}${path.delimiter}${runtimeDeps}/node_modules`
-  : `${runtimeDeps}/node_modules`;
+// Symlink Baileys into api-server/node_modules so ESM resolution finds it
+const apiModules = path.join(__dirname, 'artifacts/api-server/node_modules');
+const linkTarget = path.join(apiModules, '@whiskeysockets');
+if (!existsSync(linkTarget)) {
+  mkdirSync(apiModules, { recursive: true });
+  try {
+    symlinkSync(
+      path.join(runtimeDeps, 'node_modules', '@whiskeysockets'),
+      linkTarget
+    );
+    console.log('[TRUTH-MD] Baileys linked.');
+  } catch (e) {
+    // Already exists or permission issue — copy instead
+    execSync(
+      `cp -r "${path.join(runtimeDeps, 'node_modules', '@whiskeysockets')}" "${linkTarget}"`,
+      { stdio: 'inherit' }
+    );
+  }
+}
 
 console.log('[TRUTH-MD] Starting server on port ' + process.env.PORT + '...');
 
-const server = spawn('node', ['artifacts/api-server/dist/index.cjs'], {
+const server = spawn('node', ['artifacts/api-server/dist/index.js'], {
   cwd: __dirname,
   env: {
     ...process.env,
