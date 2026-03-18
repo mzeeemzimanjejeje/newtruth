@@ -51,7 +51,7 @@ fi
 
 # ── 4. Install dependencies ───────────────────────────────
 echo "[4/6] Installing dependencies..."
-pnpm install --frozen-lockfile
+pnpm install
 
 # ── 5. Build frontend + backend ───────────────────────────
 echo "[5/6] Building project..."
@@ -68,8 +68,14 @@ echo "  Build complete ✓"
 echo "[6/6] Starting server with PM2..."
 mkdir -p /root/truth-md/logs
 
+# Stop existing instance if running (safe re-run)
+pm2 delete truth-md 2>/dev/null || true
+
 pm2 start deploy/ecosystem.config.cjs
 pm2 save
+
+echo ""
+echo "  To auto-start on reboot, run the command printed below:"
 pm2 startup
 
 echo ""
