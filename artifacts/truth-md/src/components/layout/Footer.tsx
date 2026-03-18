@@ -13,13 +13,6 @@ export function Footer() {
           <Download className="w-5 h-5" />
           DOWNLOAD TRUTH-MD
         </a>
-        <a
-          href="#"
-          className="flex-1 flex items-center justify-center gap-3 py-4 rounded-xl font-display font-bold tracking-widest text-sm text-white bg-gradient-to-r from-violet-600 via-purple-500 to-primary hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(139,92,246,0.25)]"
-        >
-          <Download className="w-5 h-5" />
-          DOWNLOAD SPACE~MD
-        </a>
       </div>
     </footer>
   )
