@@ -4,9 +4,9 @@
 const { spawn } = require('child_process');
 const path = require('path');
 
-// Default PORT to 3000 if not set by Pterodactyl
+// Pterodactyl sets SERVER_PORT — fall back to PORT, then 3000
 if (!process.env.PORT) {
-  process.env.PORT = '3000';
+  process.env.PORT = process.env.SERVER_PORT || '3000';
 }
 
 console.log('[TRUTH-MD] Starting server on port ' + process.env.PORT + '...');
