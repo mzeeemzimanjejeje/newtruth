@@ -66,6 +66,10 @@ async function buildAll() {
     minify: true,
     external: externals,
     logLevel: "info",
+    // Shim for CJS require() calls inside ESM context
+    banner: {
+      js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url);`,
+    },
   });
 }
 
