@@ -115,12 +115,12 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col relative bg-transparent overflow-x-hidden font-sans pb-20">
 
-      {/* Background */}
-      <div className="fixed inset-0 z-[-2] bg-background">
+      {/* Background — no fill, body's animated gradient shows through */}
+      <div className="fixed inset-0 z-[-2]">
         <img
           src={`${import.meta.env.BASE_URL}images/space-bg.png`}
           alt="Space Void"
-          className="w-full h-full object-cover opacity-30 mix-blend-screen"
+          className="w-full h-full object-cover opacity-20 mix-blend-screen"
         />
       </div>
       <div className="fixed top-0 inset-x-0 h-[500px] bg-gradient-to-b from-primary/5 to-transparent pointer-events-none z-[-1]" />
