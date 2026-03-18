@@ -2,7 +2,7 @@
 # ============================================================
 #  TRUTH-MD Pairing Site — VPS Setup Script
 #  VPS IP  : 77.237.242.128
-#  Domain  : newthuth.courtneytech.xyz
+#  Domain  : newtruth.courtneytech.xyz
 #
 #  Usage:
 #    cd /root/truth-md
@@ -89,10 +89,10 @@ echo "║    /etc/nginx/sites-available/truth-md                   ║"
 echo "║  sudo ln -s /etc/nginx/sites-available/truth-md \        ║"
 echo "║    /etc/nginx/sites-enabled/truth-md                     ║"
 echo "║  sudo nginx -t && sudo systemctl reload nginx            ║"
-echo "║  sudo certbot --nginx -d newthuth.courtneytech.xyz        ║"
+echo "║  sudo certbot --nginx -d newtruth.courtneytech.xyz        ║"
 echo "║                                                          ║"
 echo "║  Site will be live at:                                   ║"
-echo "║  https://newthuth.courtneytech.xyz                        ║"
+echo "║  https://newtruth.courtneytech.xyz                        ║"
 echo "║                                                          ║"
 echo "║  Logs: pm2 logs truth-md                                 ║"
 echo "╚══════════════════════════════════════════════════════════╝"
