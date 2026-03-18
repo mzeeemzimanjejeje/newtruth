@@ -12,3 +12,9 @@ id = "kyxF0heMicVEUj2G6QKwh"
 uri = "file://truth-md-pterodactyl.tar.gz"
 type = "unspecified"
 title = "TRUTH-MD — Ready for Pterodactyl (Upload & Start)"
+
+[[outputs]]
+id = "JQgZTJTDQTQ7IVMI1IMM7"
+uri = "file://truth-md-deploy.tar.gz"
+type = "unspecified"
+title = "TRUTH-MD — Full Deployment Package (5.2MB)"
